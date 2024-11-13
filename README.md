@@ -87,3 +87,27 @@ cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt v
 cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt verify --key test/public.key.pem --alg RS256 --iss https://kubernetes.default.svc.cluster.local --aud https://kubernetes.default.svc
 ```
 
+### How to test with server
+
+#### How to run server
+
+```
+opa run --server --config-file=$(pwd)/local/config.yaml --addr=http://127.0.0.1:8181 --ignore=.* --disable-telemetry policy/*.rego local/policy/config.yaml
+```
+
+#### How to input Kubernetes Pod data
+
+```
+curl -svX PUT -H"Content-Type:application/json" -H"Authorization: Bearer $(cat test/mock.yaml | yq .mock.instance.input.attestationData)" -d"$(cat test/mock.yaml | yq .mock.pods -ojson)" http://127.0.0.1:8181/v1/data/kubernetes/pods
+```
+
+#### How to make attestation request
+
+```
+curl -svX POST -H'Content-Type:application/json' -d@test/request.json http://127.0.0.1:8181/v0/data/identityprovider/instance
+```
+
+```
+curl -svX POST -H'Content-Type:application/json' -d@test/request.json http://127.0.0.1:8181/v0/data/identityprovider/refresh
+```
+

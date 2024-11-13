@@ -11,7 +11,7 @@ mock:
       attributes:
         instanceId: 11111111-2222-3333-4444-555555555555
         sanIP: 10.10.10.10
-        clientIP: 100.100.100.255
+        clientIP: 100.100.100.100
         sanURI: spiffe://athenz/sa/client
         sanDNS: client.athenz.svc.cluster.local,11111111-2222-3333-4444-555555555555.instanceid.zts.athenz.cloud
         certExpiryTime: 43200
@@ -88,7 +88,7 @@ invalid:
       attributes:
         instanceId: 11111111-2222-3333-4444-555555555555
         sanIP: 10.10.10.10
-        clientIP: 100.100.100.255
+        clientIP: 100.100.100.100
         sanURI: spiffe://athenz/sa/client
         sanDNS: client.athenz.svc.cluster.local,11111111-2222-3333-4444-555555555555.instanceid.zts.athenz.cloud
         certExpiryTime: 43200

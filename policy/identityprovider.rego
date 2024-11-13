@@ -19,14 +19,12 @@ import data.config.constraints.kubernetes.serviceaccount.token.audience as servi
 import data.config.debug
 import data.kubernetes.pods
 
-import future.keywords
-
 # we are preparing a logger function
 log(prefix, value) = true {
     debug
     prefix
     value
-    print("Identity Provider Debug:", sprintf("%s: %v", [prefix, value]))
+    print("Debug identityprovider.rego:", sprintf("%s: %v", [prefix, value]))
 } else = true
 
 # first, we are extracting the attestation data from the input
