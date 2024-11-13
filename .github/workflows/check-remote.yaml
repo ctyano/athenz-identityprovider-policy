@@ -93,41 +93,6 @@ jobs:
           printf "TAG_VERSION=${TAG_VERSION}\n" >> $GITHUB_ENV
           printf "CURRENT_VERSION=${CURRENT_VERSION}\n" >> $GITHUB_ENV
 
-      # A GitHub Action to update submodule and commit
-      -
-        name: Update submodule and commit
-        id: update
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
-        run: |
-          set -x
-          git config advice.addIgnoredFile false
-          git submodule add -f ${{ env.GIT_SUBMODULE_URL }} ${{ env.GIT_SUBMODULE_PATH }}
-          cd ${{ env.GIT_SUBMODULE_PATH }} && git fetch --refetch --tags ${{ env.GIT_SUBMODULE_URL }} && git checkout ${{ env.TAG_VERSION }}
-          cd ${GITHUB_WORKSPACE}
-          git config --global user.name "github-actions"
-          git config --global user.email "notifications@github.com"
-          git add -f ${{ env.GIT_SUBMODULE_PATH }}
-          git commit -m "Updated ${{ env.GIT_SUBMODULE_PATH }} to ${{ env.TAG_VERSION }}" || true
-
-      # A GitHub Action to create git tags
-      #
-      # Using the GITHUB_TOKEN in a workflow
-      # https://docs.github.com/en/actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
-      # When you use the repository's GITHUB_TOKEN to perform tasks, events triggered by the GITHUB_TOKEN, with the exception of workflow_dispatch and repository_dispatch, will not create a new workflow run.
-      # This prevents you from accidentally creating recursive workflow runs.
-      # For example, if a workflow run pushes code using the repository's GITHUB_TOKEN, a new workflow will not run even when the repository contains a workflow configured to run when push events occur.
-      -
-        name: Create git tag
-        id: tag
-        if: ${{ env.CURRENT_VERSION != '' && env.VERSION != '' && env.VERSION != env.CURRENT_VERSION }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -x
-          git tag -f ${{ env.TAG_VERSION }}
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
-          git push -f origin tag ${{ env.TAG_VERSION }}
-
       # A GitHub Action to dispatch event
       # https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
       -
