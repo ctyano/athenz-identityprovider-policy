@@ -94,6 +94,17 @@ jobs:
           printf "TAG_VERSION=${TAG_VERSION}\n" >> $GITHUB_ENV
           printf "CURRENT_VERSION=${CURRENT_VERSION}\n" >> $GITHUB_ENV
 
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+      -
+        name: Checkout repository
+        id: checkout
+        # You may pin to the exact commit or the version.
+        # uses: https://github.com/actions/checkout/tags
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
       # A GitHub Action to create git tags
       #
       # Using the GITHUB_TOKEN in a workflow
