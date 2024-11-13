@@ -54,6 +54,7 @@ jobs:
         id: check
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'push' }}
         run: |
+          set -x
           # Get latest release tag with:
           #   curl -sf https://api.github.com/repos/AthenZ/athenz/releases \
           #     | jq -er .[].tag_name \
