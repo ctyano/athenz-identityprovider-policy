@@ -102,14 +102,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
-          tag=v${{ github.event.inputs.target_version }}
-          body=$(curl -s https://api.github.com/repos/${SOURCE_GITHUB_REPOSITORY}/releases | jq -r ".[] | select(.tag_name == \"$tag\") | \"# [\"+.name+\"](\"+.html_url+\")<br>${{ env.OPA_BUILD_MESSAGE }}\"")
+          tag=v${{ github.event.inputs.target_version }}-rego.${{ CI_SHA_SHORT }}
+          body=$(curl -s https://api.github.com/repos/${SOURCE_GITHUB_REPOSITORY}/releases | jq -r ".[] | select(.tag_name == \"v${{ github.event.inputs.target_version }}\") | \"# [\"+.name+\"](\"+.html_url+\")<br>${{ env.OPA_BUILD_MESSAGE }}\"")
           curl \
             -XPOST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             "https://api.github.com/repos/${CI_REPOSITORY}/releases" \
-            -d "{\"tag_name\":\"$tag\",\"name\":\"Release $tag\",\"body\":\"$body\",\"draft\":false,\"prerelease\":false}"
+            -d "{\"tag_name\":\"$tag\",\"name\":\"$tag Release\",\"body\":\"$body\",\"draft\":false,\"prerelease\":false}"
 
       # A GitHub Action to upload release assets
       # https://docs.github.com/en/rest/releases/assets?apiVersion=2022-11-28#upload-a-release-asset
@@ -121,7 +121,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -x
-          tag=v${{ github.event.inputs.target_version }}
+          tag=v${{ github.event.inputs.target_version }}-rego.${{ CI_SHA_SHORT }}
           release_id=$(curl \
             -XGET \
             -H "Accept: application/vnd.github+json" \
