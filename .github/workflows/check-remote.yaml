@@ -98,7 +98,7 @@ jobs:
       # https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
       -
         name: Trigger Workflows
-        if: ${{ env.CURRENT_VERSION != '' && env.VERSION != '' && env.VERSION != env.CURRENT_VERSION }}
+        if: ${{ env.VERSION != '' && env.VERSION != env.CURRENT_VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
