@@ -11,16 +11,3 @@ default_decision: /identityprovider
 caching:
   inter_query_builtin_cache:
     max_size_bytes: 10000000 # 10GB
-
-services:
-  - name: github
-    url: https://github.com/ctyano/athenz-identityprovider-policy/releases/download/
-
-bundles:
-  identityprovider:
-    service: github
-    resource: v0.70.0-rego.5e0c7520/bundle.tar.gz
-    persist: true
-    polling:
-      min_delay_seconds: 10
-      max_delay_seconds: 20
