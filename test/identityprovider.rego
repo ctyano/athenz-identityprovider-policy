@@ -220,7 +220,7 @@ test_instance10 {
 
 # with empty data.kubernetes.pods
 test_instance11 {
-    attestated_pod == {}
+    attestated_pod == false
     with input as mock_input
     with data.config.constraints.keys.static as mock_jwks
     with data.kubernetes.pods as invalid_pods

@@ -55,6 +55,7 @@ keys := jwks_cached {
     node_list := json.unmarshal(raw_node_list)
     node_list.items[i].status.addresses[j].type == "InternalIP"
     node_jwks_url := sprintf("https://%s/openid/v1/jwks", [node_list.items[i].status.addresses[j].address])
+    log("Querying each Node URL", node_jwks_url)
     jwks_each_node := http.send({
         "url": node_jwks_url,
         "method": "GET",
@@ -110,14 +111,16 @@ serviceaccount_attestation := true {
 }
 
 # next, we are checking if the service account token jwt claim matches with the pod information from kube-apiserver
-# this checking prevents the service account token jwt to be used outside the associated pod
+# this checking expects the k8s service account information to match with the pod information registered in the kube-apiserver
 attestated_pod := pod {
     namespace_pods := object.get(pods, jwt_kubernetes_claim.namespace, {})
     pod := object.get(namespace_pods, jwt_kubernetes_claim.pod.name, {})
     jwt_kubernetes_claim.namespace == pod.metadata.namespace
     jwt_kubernetes_claim.pod.uid == pod.metadata.uid
     jwt_kubernetes_claim.serviceaccount.name == pod.spec.serviceAccountName
-} else = {}
+    input.attributes.sanIP == pod.status.podIP
+    input.attributes.clientIP == pod.status.hostIP
+} else = false
 
 cert_expiry_time := cert_expiry {
     input.attributes.certExpiryTime <= cert_expiry_time_max
