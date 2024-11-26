@@ -45,6 +45,12 @@ In order to verify the Kubernetes ServiceAccount Token, at least one option must
 opa test -v {policy,test}/*.rego {policy,test}/*.yaml
 ```
 
+to see test coverage,
+
+```
+opa test -cv {policy,test}/*.rego {policy,test}/*.yaml
+```
+
 ### How to prepare for the test
 
 #### How to generate key pairs
