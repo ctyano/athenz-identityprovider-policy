@@ -9,6 +9,8 @@ import data.mock.jwt_api_node as mock_jwt_api_node
 import data.mock.api_node_url as mock_api_node_url
 import data.mock.pods as mock_pods
 import data.invalid.pods as invalid_pods
+import data.config.constraints.kubernetes.serviceaccount.token.issuer as service_account_token_issuer
+import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.constraints.cert.expiry.maxminutes as cert_expiry_time_max
 import data.config.constraints.cert.expiry.defaultminutes as cert_expiry_time_default
 import data.config.constraints.cert.refresh as cert_refresh_default
@@ -191,12 +193,25 @@ test_instance08 {
     with data.kubernetes.pods as mock_pods
 }
 
-# with empty input.attestationData
+# with empty input
 test_instance09 {
     instance == {
         "allow": false,
         "status": {
-            "reason": "No matching validations found",
+            "reason": "empty input"
+        },
+    }
+    with input as false
+    with data.config.constraints.keys.static as mock_jwks
+    with data.kubernetes.pods as mock_pods
+}
+
+# with empty input.attestationData
+test_instance10 {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": "empty input: empty attestation data"
         },
     }
     with input as mock_input
@@ -206,11 +221,18 @@ test_instance09 {
 }
 
 # with invalid input.attestationData
-test_instance10 {
+test_instance11 {
     instance == {
         "allow": false,
         "status": {
-            "reason": "No matching validations found",
+            "reason": sprintf("invalid jwt: failed to verify the service account token signature, or failed to attest jwt claims: claims[%v], constraints[%v]", [
+                io.jwt.decode(invalid_input.attestationData)[1],
+                {
+                    "iss": service_account_token_issuer,
+                    "aud": service_account_token_audience,
+                    "cert": mock_jwks,
+                }
+            ])
         },
     }
     with input as invalid_input
@@ -218,12 +240,122 @@ test_instance10 {
     with data.kubernetes.pods as mock_pods
 }
 
+# with invalid provider athenz service
+test_instance12 {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": sprintf("invalid input: input athenz provider service mismatched: input[%v], configuration[%v]",
+                ["", "athenz.identityprovider"])
+        },
+    }
+    with input as json.patch(mock_input, [{"op": "replace", "path": "/provider", "value": ""}])
+    with data.config.constraints.keys.static as mock_jwks
+    with data.kubernetes.pods as mock_pods
+}
+
+# with invalid athenz domain
+test_instance13 {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": sprintf("invalid input: input athenz domain mismatched: input[%v], configuration[%v]",
+                ["", "athenz"])
+        },
+    }
+    with input as json.patch(mock_input, [{"op": "replace", "path": "/domain", "value": ""}])
+    with data.config.constraints.keys.static as mock_jwks
+    with data.kubernetes.pods as mock_pods
+}
+
+# with invalid athenz service
+test_instance14 {
+    print(io.jwt.decode(invalid_input.attestationData)[1])
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": sprintf("invalid input: input athenz service mismatched: input[%v], token_claims[%v]",
+                [
+                    "",
+                    io.jwt.decode(invalid_input.attestationData)[1]["kubernetes.io"],
+                ])
+        },
+    }
+    with input as json.patch(mock_input, [{"op": "replace", "path": "/service", "value": ""}])
+    with data.config.constraints.keys.static as mock_jwks
+    with data.kubernetes.pods as mock_pods
+}
+
+# with empty kubernetes.io claim
+test_instance15 {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": sprintf("invalid input: input attributes mismatched: input[%v], kube-apiserver[%v]", [object.get(input, "attributes", ""), false])
+        },
+    }
+    with input as mock_input
+    with data.config.constraints.keys.static as mock_jwks
+    with verified_jwt as []
+    with data.kubernetes.pods as mock_pods
+}
 # with empty data.kubernetes.pods
 test_instance11 {
     attestated_pod == false
     with input as mock_input
     with data.config.constraints.keys.static as mock_jwks
     with data.kubernetes.pods as invalid_pods
+}
+
+# with invalid input.attributes.sanDNS with empty constraints
+test_instance17 {
+    instance == {
+        "domain": mock_input.domain,
+        "service": mock_input.service,
+        "provider": mock_input.provider,
+        "attributes": {
+            "instanceId": mock_input.attributes.instanceId,
+            "sanIP": mock_input.attributes.sanIP,
+            "clientIP": mock_input.attributes.clientIP,
+            "sanURI": mock_input.attributes.sanURI,
+            "sanDNS": mock_input.attributes.sanDNS,
+            "certExpiryTime": cert_expiry_time_default,
+            "certRefresh": cert_refresh_default
+        }
+    }
+    with input as mock_input
+    with input.attributes.sanDNS as "athenz.invalid"
+    with data.config.constraints.cert.sandns as []
+    with data.config.constraints.keys.static as mock_jwks
+    with data.kubernetes.pods as mock_pods
+}
+
+# with invalid input.attributes.sanDNS for "<instance id>.instanceid.zts.athenz.cloud" pattern
+test_instance18 {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": "no matching validations found",
+        },
+    }
+    with input as mock_input
+    with input.attributes.sanDNS as "client.athenz.svc.cluster.local,0e71e3f6-171a-45b7-a05c-caafd799c7cc.instanceid.athenz.cloud"
+    with data.config.constraints.keys.static as mock_jwks
+    with data.kubernetes.pods as mock_pods
+}
+
+# with invalid input.attributes.sanDNS for "<service account>.<namespace>.<provider dns suffix>" pattern
+test_instance19 {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": "no matching validations found",
+        },
+    }
+    with input as mock_input
+    with input.attributes.sanDNS as "client.athenz.pod.cluster.local,0e71e3f6-171a-45b7-a05c-caafd799c7cc.instanceid.zts.athenz.cloud"
+    with data.config.constraints.keys.static as mock_jwks
+    with data.kubernetes.pods as mock_pods
 }
 
 # with empty athenz domain in config to associate kubernetes namespace as athenz domain

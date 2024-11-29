@@ -7,6 +7,7 @@ import data.config.constraints.athenz.identityprovider.service as expected_athen
 import data.config.constraints.cert.expiry.maxminutes as cert_expiry_time_max
 import data.config.constraints.cert.expiry.defaultminutes as cert_expiry_time_default
 import data.config.constraints.cert.refresh as cert_refresh_default
+import data.config.constraints.cert.sandns as expected_cert_sandns
 import data.config.constraints.keys.jwks.url as jwks_url
 import data.config.constraints.keys.jwks.cacert as jwks_cacert_file
 import data.config.constraints.keys.jwks.force_cache_duration_seconds as jwks_force_cache_duration_seconds
@@ -18,6 +19,8 @@ import data.config.constraints.kubernetes.serviceaccount.token.issuer as service
 import data.config.constraints.kubernetes.serviceaccount.token.audience as service_account_token_audience
 import data.config.debug
 import data.kubernetes.pods
+
+import future.keywords.every
 
 # we are preparing a logger function
 log(prefix, value) = true {
@@ -110,16 +113,27 @@ serviceaccount_attestation := true {
     count(expected_serviceaccounts) == 0
 }
 
+# we are also checking if the certificate request only includes the expected pattern of san dns (optional)
+sandns_attestation := true {
+    count(expected_cert_sandns) > 0
+    sandns := split(input.attributes.sanDNS, ",")
+    every dns in sandns {
+      glob.match(expected_cert_sandns[_].glob, [], dns)
+    }
+} else = true {
+    count(expected_cert_sandns) == 0
+}
+
 # next, we are checking if the service account token jwt claim matches with the pod information from kube-apiserver
 # this checking expects the k8s service account information to match with the pod information registered in the kube-apiserver
 attestated_pod := pod {
     namespace_pods := object.get(pods, jwt_kubernetes_claim.namespace, {})
     pod := object.get(namespace_pods, jwt_kubernetes_claim.pod.name, {})
+    input.attributes.sanIP == pod.status.podIP
+    input.attributes.clientIP == pod.status.hostIP
     jwt_kubernetes_claim.namespace == pod.metadata.namespace
     jwt_kubernetes_claim.pod.uid == pod.metadata.uid
     jwt_kubernetes_claim.serviceaccount.name == pod.spec.serviceAccountName
-    input.attributes.sanIP == pod.status.podIP
-    input.attributes.clientIP == pod.status.hostIP
 } else = false
 
 cert_expiry_time := cert_expiry {
@@ -157,22 +171,91 @@ response = {
     input.provider == expected_athenz_provider
     namespace_attestation
     serviceaccount_attestation
+    sandns_attestation
     attestated_pod
 
+# if any attestation factor fails, then we are setting the zts response with error message
+# this error response represents empty input
 } else = {
     "allow": false,
     "status": {
-        "reason": "No matching validations found",
+        "reason": "empty input"
     },
 } {
+    not input
+    log("response", "empty input")
+
+# this error response represents empty attesttation data
+} else = {
+    "allow": false,
+    "status": {
+        "reason": "empty input: empty attestation data"
+    },
+} {
+    object.get(input, "attestationData", "") == ""
+    log("response", "empty input: empty attestation data")
+
+# this error response represents invalid jwt
+} else = {
+    "allow": false,
+    "status": {
+        "reason": sprintf("invalid jwt: failed to verify the service account token signature, or failed to attest jwt claims: claims[%v], constraints[%v]", [unverified_jwt[1], constraints])
+    },
+} {
+    verified_jwt[0] == false
+    log("response", sprintf("invalid jwt: failed to verify the service account token signature, or failed to attest jwt claims: claims[%v], constraints[%v]", [unverified_jwt[1], constraints]))
+
+# this error response represents invalid athenz provider service
+} else = {
+    "allow": false,
+    "status": {
+        "reason": sprintf("invalid input: input athenz provider service mismatched: input[%v], configuration[%v]", [object.get(input, "provider", ""), expected_athenz_provider])
+    },
+} {
+    input.provider != expected_athenz_provider
+    log("response", sprintf("invalid input: input athenz provider service mismatched: input[%v], configuration[%v]", [object.get(input, "provider", ""), expected_athenz_provider]))
+
+# this error response represents invalid athenz domain
+} else = {
+    "allow": false,
+    "status": {
+        "reason": sprintf("invalid input: input athenz domain mismatched: input[%v], configuration[%v]", [object.get(input, "domain", ""), expected_athenz_domain])
+    },
+} {
+    input.domain != expected_athenz_domain
+    log("response", sprintf("invalid input: input athenz domain mismatched: input[%v], configuration[%v]", [object.get(input, "domain", ""), expected_athenz_domain]))
+
+# this error response represents invalid athenz service
+} else = {
+    "allow": false,
+    "status": {
+        "reason": sprintf("invalid input: input athenz service mismatched: input[%v], token_claims[%v]", [object.get(input, "service", ""), jwt_kubernetes_claim])
+    },
+} {
+    input.service != jwt_kubernetes_claim.serviceaccount.name
+    log("response", sprintf("invalid input: input athenz service mismatched: input[%v], token_claims[%v]", [object.get(input, "service", ""), jwt_kubernetes_claim]))
+
+# this error response represents invalid input attributes
+} else = {
+    "allow": false,
+    "status": {
+        "reason": sprintf("invalid input: input attributes mismatched: input[%v], kube-apiserver[%v]", [object.get(input, "attributes", ""), attestated_pod])
+    },
+} {
+    attestated_pod == false
+    log("response", sprintf("invalid input: input attributes mismatched: input[%v], kube-apiserver[%v]", [object.get(input, "attributes", ""), attestated_pod]))
+
+# otherwise, we are sending an error response with no matching validations found
+} else = {
+    "allow": false,
+    "status": {
+        "reason": "no matching validations found",
+    },
+} {
+    log("response", "no matching validations found")
+    log("data.config", data.config)
     log("input", input)
-    log("cert_expiry_time_default", cert_expiry_time_default)
-    log("cert_refresh_default", cert_refresh_default)
     log("constraints", constraints)
-    log("expected_namespaces", expected_namespaces)
-    log("athenz_domain_prefix", athenz_domain_prefix)
-    log("athenz_domain_name", athenz_domain_name)
-    log("athenz_domain_suffix", athenz_domain_suffix)
     log("unverified_jwt", unverified_jwt)
     log("jwt_kubernetes_claim", jwt_kubernetes_claim)
     log("attestated_pod", attestated_pod)

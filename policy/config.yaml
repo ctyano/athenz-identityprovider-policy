@@ -13,6 +13,9 @@ config:
         defaultminutes: 43200
         maxminutes: 43200
       refresh: true
+      sandns: # leave this as an empty array to disable checking
+        - glob: "*.*.svc.cluster.local"
+        - glob: "*.instanceid.zts.athenz.cloud"
     keys:
       jwks:
         url: http://127.0.0.1:8001/openid/v1/jwks
@@ -22,9 +25,9 @@ config:
         url: http://127.0.0.1:8001/api/v1/nodes
       static: ""
     kubernetes:
-      namespaces: []
+      namespaces: [] # leave this as an empty array to disable checking
       serviceaccount:
-        names: []
+        names: [] # leave this as an empty array to disable checking
         token:
           issuer: https://kubernetes.default.svc.cluster.local
           audience: https://kubernetes.default.svc
