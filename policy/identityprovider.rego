@@ -117,8 +117,9 @@ serviceaccount_attestation := true {
 sandns_attestation := true {
     count(expected_cert_sandns) > 0
     sandns := split(input.attributes.sanDNS, ",")
+    # this check expects each san dns entry to match one of the expected certificate san dns glob pattens
     every dns in sandns {
-      glob.match(expected_cert_sandns[_].glob, [], dns)
+        glob.match(expected_cert_sandns[_].glob, [], dns)
     }
 } else = true {
     count(expected_cert_sandns) == 0
@@ -130,7 +131,9 @@ attestated_pod := pod {
     namespace_pods := object.get(pods, jwt_kubernetes_claim.namespace, {})
     pod := object.get(namespace_pods, jwt_kubernetes_claim.pod.name, {})
     input.attributes.sanIP == pod.status.podIP
-    input.attributes.clientIP == pod.status.hostIP
+    # this checking fails when athenz zts is running inside the same k8s cluster since "input.attributes.clientIP" will be the pod ip instead of the host ip
+    # TODO: so for now, we are commenting this line out
+    #input.attributes.clientIP == pod.status.hostIP
     jwt_kubernetes_claim.namespace == pod.metadata.namespace
     jwt_kubernetes_claim.pod.uid == pod.metadata.uid
     jwt_kubernetes_claim.serviceaccount.name == pod.spec.serviceAccountName
