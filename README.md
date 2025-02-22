@@ -44,6 +44,8 @@ In order to verify the Kubernetes ServiceAccount Token, at least one option must
 
 ## How to test
 
+### Test rego files for opa
+
 ```
 opa test -v {policy,test}/*.rego {policy,test}/*.yaml
 ```
