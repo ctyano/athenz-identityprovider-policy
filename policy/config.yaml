@@ -18,6 +18,7 @@ config:
       refresh: true
       sandns: # leave this as an empty array to disable checking
         - glob: "*.*.svc.cluster.local"
+        - glob: "*.instanceid.*.svc.cluster.local"
         - glob: "*.instanceid.zts.athenz.cloud"
     keys:
       jwks:
