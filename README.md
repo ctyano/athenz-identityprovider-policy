@@ -47,13 +47,13 @@ In order to verify the Kubernetes ServiceAccount Token, at least one option must
 ### Test rego files for opa
 
 ```
-opa test -v {policy,test}/*.rego {policy,test}/*.yaml
+opa test -v --v0-compatible {policy,test}/*.rego {policy,test}/*.yaml
 ```
 
 to see test coverage,
 
 ```
-opa test -cv {policy,test}/*.rego {policy,test}/*.yaml
+opa test -cv --v0-compatible {policy,test}/*.rego {policy,test}/*.yaml
 ```
 
 ### How to prepare for the test
@@ -103,7 +103,7 @@ cat test/mock.yaml | yq .mock.instance.input.attestationData | step crypto jwt v
 #### How to run server
 
 ```
-opa run --server --config-file=$(pwd)/local/config.yaml --addr=http://127.0.0.1:8181 --ignore=.* --disable-telemetry policy/*.rego local/policy/config.yaml
+opa run --server --config-file=$(pwd)/local/config.yaml --addr=http://127.0.0.1:8181 --ignore=.* --disable-telemetry --v0-compatible policy/*.rego local/policy/config.yaml
 ```
 
 #### How to input Kubernetes Pod data
