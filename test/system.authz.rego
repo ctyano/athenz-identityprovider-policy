@@ -4,7 +4,7 @@ import data.mock.instance.input as mock_input
 import data.invalid.instance.input as invalid_input
 #import data.mock.pem.public as mock_public_key
 import data.mock.jwks_url as mock_jwks_url
-import data.mock.jwks as mock_jwks
+import data.mock.jwks.public as mock_jwks_public
 import data.mock.jwt_api_node as mock_jwt_api_node
 import data.mock.api_node_url as mock_api_node_url
 import data.mock.pods as mock_pods
@@ -58,7 +58,7 @@ test_pods03 {
         "method": "PUT",
         "identity": mock_input.attestationData,
     }
-    with data.config.constraints.keys.static as mock_jwks
+    with data.config.constraints.keys.static as mock_jwks_public
 }
 
 test_pods04 {

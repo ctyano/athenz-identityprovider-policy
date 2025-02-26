@@ -3,6 +3,8 @@ package identityprovider
 import data.config.constraints.athenz.domain.name as athenz_domain_name
 import data.config.constraints.athenz.domain.prefix as athenz_domain_prefix
 import data.config.constraints.athenz.domain.suffix as athenz_domain_suffix
+import data.config.constraints.athenz.namespace.trimprefix as athenz_namespace_trimprefix
+import data.config.constraints.athenz.namespace.trimsuffix as athenz_namespace_trimsuffix
 import data.config.constraints.athenz.identityprovider.service as expected_athenz_provider
 import data.config.constraints.cert.expiry.maxminutes as cert_expiry_time_max
 import data.config.constraints.cert.expiry.defaultminutes as cert_expiry_time_default
@@ -93,6 +95,11 @@ jwt_kubernetes_claim := extracted_claim {
 # first, we are preparing an expected athenz domain for the verification
 expected_athenz_domain := concat("", [athenz_domain_prefix, athenz_domain_name, athenz_domain_suffix]) {
     athenz_domain_name != ""
+} else = concat("", [athenz_domain_prefix, trimed_namespace, athenz_domain_suffix]) {
+    jwt_kubernetes_claim.namespace
+    some phrase in [athenz_namespace_trimprefix, athenz_namespace_trimsuffix]
+    phrase != ""
+    trimed_namespace := trim_suffix(trim_prefix(jwt_kubernetes_claim.namespace, athenz_namespace_trimprefix), athenz_namespace_trimsuffix)
 } else = concat("", [athenz_domain_prefix, jwt_kubernetes_claim.namespace, athenz_domain_suffix]) {
     jwt_kubernetes_claim.namespace
 }

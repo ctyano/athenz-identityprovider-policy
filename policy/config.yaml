@@ -6,6 +6,9 @@ config:
         name: ""
         prefix: ""
         suffix: ""
+      namespace:
+        trimprefix: ""
+        trimsuffix: ""
       identityprovider:
         service: athenz.identityprovider
     cert:
