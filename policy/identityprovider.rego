@@ -120,6 +120,12 @@ serviceaccount_attestation := true {
     count(expected_serviceaccounts) == 0
 }
 
+# ZTS joins the CSR's SAN URIs with commas; only one URI is allowed
+sanuri_count := count(split(input.attributes.sanURI, ","))
+sanuri_attestation := true {
+    sanuri_count == 1
+}
+
 # we are also checking if the certificate request only includes the expected pattern of san dns (optional)
 sandns_attestation := true {
     count(expected_cert_sandns) > 0
@@ -181,6 +187,7 @@ response = {
     input.provider == expected_athenz_provider
     namespace_attestation
     serviceaccount_attestation
+    sanuri_attestation
     sandns_attestation
     attestated_pod
 
@@ -244,6 +251,16 @@ response = {
 } {
     input.service != jwt_kubernetes_claim.serviceaccount.name
     log("response", sprintf("invalid input: input athenz service mismatched: input[%v], token_claims[%v]", [object.get(input, "service", ""), jwt_kubernetes_claim]))
+
+# this error response represents multiple SAN URIs in the certificate request
+} else = {
+    "allow": false,
+    "status": {
+        "reason": "invalid input: multiple SAN URIs are not allowed",
+    },
+} {
+    sanuri_count > 1
+    log("response", "invalid input: multiple SAN URIs are not allowed")
 
 # this error response represents invalid input attributes
 } else = {
