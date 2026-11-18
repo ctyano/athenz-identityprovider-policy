@@ -366,6 +366,31 @@ test_instance18 {
     with data.kubernetes.pods as invalid_pods
 }
 
+# with multiple SAN URIs in the certificate request
+test_instance_rejects_multiple_san_uris {
+    instance == {
+        "allow": false,
+        "status": {
+            "reason": "invalid input: multiple SAN URIs are not allowed",
+        },
+    }
+    with input as json.patch(mock_input, [{"op": "replace", "path": "/attributes/sanURI", "value": "spiffe://athenz/sa/client,spiffe://athenz/sa/other"}])
+    with data.config.constraints.keys.static as mock_jwks_public
+    with data.kubernetes.pods as mock_pods
+}
+
+test_refresh_rejects_multiple_san_uris {
+    refresh == {
+        "allow": false,
+        "status": {
+            "reason": "invalid input: multiple SAN URIs are not allowed",
+        },
+    }
+    with input as json.patch(mock_input, [{"op": "replace", "path": "/attributes/sanURI", "value": "spiffe://athenz/sa/client,spiffe://athenz/sa/other"}])
+    with data.config.constraints.keys.static as mock_jwks_public
+    with data.kubernetes.pods as mock_pods
+}
+
 # with invalid input.attributes.sanDNS with empty constraints
 test_instance19 {
     instance == {
